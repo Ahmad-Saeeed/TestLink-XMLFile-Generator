@@ -1,12 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
-# Simplified, reliable PyInstaller spec for TestLinkCRXMLGen
-#
-# Changes that reduce VirusTotal false positives:
-#   - onedir layout (no self-extracting one-file bootloader)
-#   - upx=False
-#   - console=False (clean GUI)
-
-block_cipher = None
+# Reliable onedir PyInstaller spec for TestLinkCRXMLGen
+# Compatible with PyInstaller 6.x on Windows
 
 a = Analysis(
     ['app.py'],
@@ -48,45 +42,39 @@ a = Analysis(
         'IPython', 'jupyter', 'notebook', 'pytest',
         'tkinter.test', 'unittest', 'pydoc',
     ],
-    win_no_prefer_redirects=False,
-    win_private_assemblies=False,
-    cipher=block_cipher,
     noarchive=False,
 )
 
-# Collect python-docx data files (templates etc.)
+# Collect python-docx data files if available
 try:
     from PyInstaller.utils.hooks import collect_data_files
     a.datas += collect_data_files('docx')
 except Exception:
     pass
 
-pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
+pyz = PYZ(a.pure)
 
-# onedir layout – much fewer AV false positives than onefile
 exe = EXE(
     pyz,
     a.scripts,
     [],
-    exclude_binaries=True,          # <-- required for onedir
+    exclude_binaries=True,      # onedir mode
     name='TestLinkCRXMLGen',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=False,                      # never use UPX – AV trigger
-    console=False,                  # pure GUI, no black console
+    upx=False,
+    console=False,              # pure GUI
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=None,
 )
 
 coll = COLLECT(
     exe,
     a.binaries,
-    a.zipfiles,
     a.datas,
     strip=False,
     upx=False,
