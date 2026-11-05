@@ -1,0 +1,35 @@
+name: Build Windows EXE
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:          # lets you trigger manually from the Actions tab
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install python-docx lxml pyinstaller
+
+      - name: Build EXE with PyInstaller (onedir)
+        run: |
+          pyinstaller --clean TestLinkCRXMLGen.spec
+
+      - name: Upload EXE folder as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TestLinkCRXMLGen-Windows
+          path: dist/TestLinkCRXMLGen/
+          retention-days: 30
