@@ -52,15 +52,21 @@ def _sanitize_filename(name: str) -> str:
 
 
 def _make_button(parent, text, command, state="normal", **kw):
-    btn = tk.Button(
-        parent, text=text, command=command,
-        bg=CLR_BTN_BG, fg=CLR_BTN_FG,
-        activebackground=CLR_BTN_HOVER, activeforeground=CLR_BTN_FG,
-        relief="flat", padx=14, pady=6,
-        font=("Segoe UI", 10, "bold"),
-        cursor="hand2", state=state,
-        **kw,
-    )
+    # defaults that can be overridden by the caller
+    opts = {
+        "bg": CLR_BTN_BG,
+        "fg": CLR_BTN_FG,
+        "activebackground": CLR_BTN_HOVER,
+        "activeforeground": CLR_BTN_FG,
+        "relief": "flat",
+        "padx": 14,
+        "pady": 6,
+        "font": ("Segoe UI", 10, "bold"),
+        "cursor": "hand2",
+        "state": state,
+    }
+    opts.update(kw)
+    btn = tk.Button(parent, text=text, command=command, **opts)
     btn.bind("<Enter>", lambda _: btn.config(bg=CLR_BTN_HOVER) if btn["state"] == "normal" else None)
     btn.bind("<Leave>", lambda _: btn.config(bg=CLR_BTN_BG))
     return btn
