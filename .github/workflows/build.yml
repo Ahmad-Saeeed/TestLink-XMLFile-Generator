@@ -1,4 +1,4 @@
-name: Build Windows EXE
+name: Build Windows EXE (Nuitka)
 
 on:
   push:
@@ -21,20 +21,32 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install python-docx lxml pyinstaller
+          pip install python-docx lxml nuitka ordered-set zstandard
 
-      - name: Build with PyInstaller (onedir)
+      - name: Build with Nuitka (standalone)
         run: |
-          pyinstaller --clean --noconfirm TestLinkCRXMLGen.spec
+          python -m nuitka ^
+            --standalone ^
+            --windows-disable-console ^
+            --enable-plugin=tk-inter ^
+            --include-package=docx ^
+            --include-package=lxml ^
+            --include-module=extract_isd ^
+            --include-module=build_xml ^
+            --output-dir=dist ^
+            --output-filename=TestLinkCRXMLGen.exe ^
+            --assume-yes-for-downloads ^
+            --remove-output ^
+            app.py
 
-      - name: List output (debug)
+      - name: List output
         run: |
           dir dist
-          dir dist\TestLinkCRXMLGen
+          dir dist\app.dist
 
       - name: Upload EXE folder as artifact
         uses: actions/upload-artifact@v4
         with:
           name: TestLinkCRXMLGen-Windows
-          path: dist/TestLinkCRXMLGen/
+          path: dist/app.dist/
           retention-days: 30
