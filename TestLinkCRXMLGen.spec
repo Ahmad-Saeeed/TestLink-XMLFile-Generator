@@ -1,49 +1,12 @@
 # -*- mode: python ; coding: utf-8 -*-
-# PyInstaller spec for TestLinkCRXMLGen
+# Simplified, reliable PyInstaller spec for TestLinkCRXMLGen
 #
-# Key choices that reduce VirusTotal flags:
-#   - onedir (not onefile)  → no self-extracting bootloader
-#   - upx=False             → UPX packing is a known AV trigger
-#   - VERSIONINFO resource  → legitimate looking metadata
-#   - explicit excludes     → strips unused large packages
-#   - collect python-docx / lxml properly
+# Changes that reduce VirusTotal false positives:
+#   - onedir layout (no self-extracting one-file bootloader)
+#   - upx=False
+#   - console=False (clean GUI)
 
-import sys
-from PyInstaller.utils.win32.versioninfo import (
-    VSVersionInfo, FixedFileInfo, StringFileInfo, StringTable, StringStruct, VarFileInfo, VarStruct
-)
-
-# Version info shown by Windows Explorer / VirusTotal
-version_info = VSVersionInfo(
-    ffi=FixedFileInfo(
-        filevers=(1, 0, 1, 0),
-        prodvers=(1, 0, 1, 0),
-        mask=0x3f,
-        flags=0x0,
-        OS=0x40004,          # VOS_NT_WINDOWS32
-        fileType=0x1,        # VFT_APP
-        subtype=0x0,
-        date=(0, 0),
-    ),
-    kids=[
-        StringFileInfo([
-            StringTable(
-                "040904B0",  # US English, Unicode
-                [
-                    StringStruct("CompanyName", "Telecom Egypt / WE"),
-                    StringStruct("FileDescription", "TestLink CR XML Generator"),
-                    StringStruct("FileVersion", "1.0.1"),
-                    StringStruct("InternalName", "TestLinkCRXMLGen"),
-                    StringStruct("LegalCopyright", "Copyright (c) 2025"),
-                    StringStruct("OriginalFilename", "TestLinkCRXMLGen.exe"),
-                    StringStruct("ProductName", "TestLink CR XML Generator"),
-                    StringStruct("ProductVersion", "1.0.1"),
-                ],
-            )
-        ]),
-        VarFileInfo([VarStruct("Translation", [0x0409, 1200])]),
-    ],
-)
+block_cipher = None
 
 a = Analysis(
     ['app.py'],
@@ -85,41 +48,45 @@ a = Analysis(
         'IPython', 'jupyter', 'notebook', 'pytest',
         'tkinter.test', 'unittest', 'pydoc',
     ],
+    win_no_prefer_redirects=False,
+    win_private_assemblies=False,
+    cipher=block_cipher,
     noarchive=False,
-    optimize=1,
 )
 
-# Make sure python-docx data files (templates, etc.) are collected
-from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs
-a.datas += collect_data_files('docx')
-a.binaries += collect_dynamic_libs('lxml')
+# Collect python-docx data files (templates etc.)
+try:
+    from PyInstaller.utils.hooks import collect_data_files
+    a.datas += collect_data_files('docx')
+except Exception:
+    pass
 
-pyz = PYZ(a.pure)
+pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
-# onedir layout – far fewer AV false positives than onefile
+# onedir layout – much fewer AV false positives than onefile
 exe = EXE(
     pyz,
     a.scripts,
     [],
-    exclude_binaries=True,          # <-- onedir
+    exclude_binaries=True,          # <-- required for onedir
     name='TestLinkCRXMLGen',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=False,
-    console=False,                  # GUI only
+    upx=False,                      # never use UPX – AV trigger
+    console=False,                  # pure GUI, no black console
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    version=version_info,           # <-- VERSIONINFO resource
     icon=None,
 )
 
 coll = COLLECT(
     exe,
     a.binaries,
+    a.zipfiles,
     a.datas,
     strip=False,
     upx=False,
