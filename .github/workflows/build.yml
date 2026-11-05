@@ -3,7 +3,7 @@ name: Build Windows EXE
 on:
   push:
     branches: [main]
-  workflow_dispatch:          # lets you trigger manually from the Actions tab
+  workflow_dispatch:
 
 jobs:
   build:
@@ -20,12 +20,17 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install --upgrade pip
+          python -m pip install --upgrade pip
           pip install python-docx lxml pyinstaller
 
-      - name: Build EXE with PyInstaller (onedir)
+      - name: Build with PyInstaller (onedir)
         run: |
-          pyinstaller --clean TestLinkCRXMLGen.spec
+          pyinstaller --clean --noconfirm TestLinkCRXMLGen.spec
+
+      - name: List output (debug)
+        run: |
+          dir dist
+          dir dist\TestLinkCRXMLGen
 
       - name: Upload EXE folder as artifact
         uses: actions/upload-artifact@v4
