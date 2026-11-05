@@ -42,12 +42,17 @@ def extract_from_isd(path: str) -> Tuple[str, List[str]]:
 
 def _api_name_from_filename(path: str) -> str:
     basename = os.path.basename(path)
-    # Match both _ApiName_ISD.docx and _ApiName_ISD_V1.docx / _ApiName_ISD_V1_2.docx
-    m = re.search(r'_([A-Za-z0-9]+)_ISD(?:_|\.|$)', basename, re.IGNORECASE)
+    # Capture the alnum run immediately before "ISD", tolerating one or more
+    # underscores and/or spaces as the separator (handles a trailing space
+    # before _ISD, a doubled "__ISD", or an extra prefix segment such as
+    # ESB_xyz_ApiName__ISD_V1.3 — the run closest to ISD always wins since
+    # any earlier segment fails to be immediately followed by ISD).
+    m = re.search(r'([A-Za-z0-9]+)[\s_]+ISD(?=[_.\s]|$)', basename, re.IGNORECASE)
     if not m:
         raise ValueError(
             f"Cannot detect API name — filename does not match "
-            f"*_<ApiName>_ISD*.docx\nGot: {basename}"
+            f"*<ApiName>_ISD*.docx (with at least one underscore or space "
+            f"before ISD)\nGot: {basename}"
         )
     return m.group(1)
 
