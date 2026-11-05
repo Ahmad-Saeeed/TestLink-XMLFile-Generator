@@ -28,24 +28,37 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           $src = "$env:RUNNER_TEMP\pyi-src"
-          
+
           Write-Host "=== Cloning PyInstaller v6.22.3 ==="
           git clone --depth 1 --branch v6.22.3 https://github.com/pyinstaller/pyinstaller.git $src
-          
+          if ($LASTEXITCODE -ne 0) { throw "git clone failed with exit code $LASTEXITCODE" }
+
           Write-Host "=== Building bootloader (64-bit) ==="
           Push-Location "$src\bootloader"
-          python ./waf all --target-arch=64bit
-          if ($LASTEXITCODE -ne 0) { throw "waf failed with exit code $LASTEXITCODE" }
-          Pop-Location
-          
-          Write-Host "=== Installing custom PyInstaller ==="
+          try {
+            python ./waf all --target-arch=64bit
+            if ($LASTEXITCODE -ne 0) { throw "waf failed with exit code $LASTEXITCODE" }
+          }
+          finally {
+            Pop-Location
+          }
+
+          Write-Host "=== Installing custom PyInstaller and its dependencies ==="
           Push-Location $src
-          pip install --force-reinstall --no-deps .
-          if ($LASTEXITCODE -ne 0) { throw "pip install failed with exit code $LASTEXITCODE" }
-          Pop-Location
-          
-          Write-Host "=== Verifying PyInstaller version ==="
+          try {
+            # Do not use --no-deps: PyInstaller needs runtime dependencies such as pefile.
+            python -m pip install --force-reinstall .
+            if ($LASTEXITCODE -ne 0) { throw "PyInstaller installation failed with exit code $LASTEXITCODE" }
+          }
+          finally {
+            Pop-Location
+          }
+
+          Write-Host "=== Verifying PyInstaller installation ==="
+          python -m pip show PyInstaller pefile
+          if ($LASTEXITCODE -ne 0) { throw "PyInstaller or pefile is not installed" }
           pyinstaller --version
+          if ($LASTEXITCODE -ne 0) { throw "PyInstaller version check failed with exit code $LASTEXITCODE" }
 
       - name: Build EXE with custom PyInstaller
         run: |
