@@ -1,6 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
-# Reliable onedir PyInstaller spec for TestLinkCRXMLGen
-# Compatible with PyInstaller 6.x on Windows
+# Clean, reliable onedir spec for PyInstaller 6.x
 
 a = Analysis(
     ['app.py'],
@@ -45,26 +44,19 @@ a = Analysis(
     noarchive=False,
 )
 
-# Collect python-docx data files if available
-try:
-    from PyInstaller.utils.hooks import collect_data_files
-    a.datas += collect_data_files('docx')
-except Exception:
-    pass
-
 pyz = PYZ(a.pure)
 
 exe = EXE(
     pyz,
     a.scripts,
     [],
-    exclude_binaries=True,      # onedir mode
+    exclude_binaries=True,
     name='TestLinkCRXMLGen',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=False,
-    console=False,              # pure GUI
+    console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
