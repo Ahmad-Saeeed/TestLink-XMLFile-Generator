@@ -18,34 +18,43 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
+      - name: Install build dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install python-docx lxml
+          pip install python-docx lxml wheel setuptools pywin32-ctypes
 
       - name: Compile PyInstaller's launcher from source
         shell: pwsh
         run: |
-          git clone --depth 1 --branch v6.22.3 https://github.com/pyinstaller/pyinstaller.git "$env:RUNNER_TEMP/pyi-src"
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-          Push-Location "$env:RUNNER_TEMP/pyi-src/bootloader"
+          $ErrorActionPreference = "Stop"
+          $src = "$env:RUNNER_TEMP\pyi-src"
+          
+          Write-Host "=== Cloning PyInstaller v6.22.3 ==="
+          git clone --depth 1 --branch v6.22.3 https://github.com/pyinstaller/pyinstaller.git $src
+          
+          Write-Host "=== Building bootloader (64-bit) ==="
+          Push-Location "$src\bootloader"
           python ./waf all --target-arch=64bit
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ($LASTEXITCODE -ne 0) { throw "waf failed with exit code $LASTEXITCODE" }
           Pop-Location
-
-          Push-Location "$env:RUNNER_TEMP/pyi-src"
+          
+          Write-Host "=== Installing custom PyInstaller ==="
+          Push-Location $src
           pip install --force-reinstall --no-deps .
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ($LASTEXITCODE -ne 0) { throw "pip install failed with exit code $LASTEXITCODE" }
           Pop-Location
+          
+          Write-Host "=== Verifying PyInstaller version ==="
+          pyinstaller --version
 
-      - name: Build EXE with PyInstaller (custom bootloader)
-        run: pyinstaller --clean --noconfirm TestLinkCRXMLGen.spec
+      - name: Build EXE with custom PyInstaller
+        run: |
+          pyinstaller --clean --noconfirm TestLinkCRXMLGen.spec
 
       - name: List output
         run: |
           dir dist
-          dir dist\TestLinkCRXMLGen
+          if (Test-Path dist\TestLinkCRXMLGen) { dir dist\TestLinkCRXMLGen }
 
       - name: Upload built app
         uses: actions/upload-artifact@v4
